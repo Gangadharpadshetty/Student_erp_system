@@ -1,0 +1,16 @@
+# User Credentials for Testing
+# These are the plain text passwords. They will be hashed by the seed script.
+
+[ADMIN]
+email=admin@erp.com
+password=admin123
+role=ADMIN
+
+[TEACHERS]
+teacher1=math_teacher@erp.com,pass123,Math,10
+teacher2=sci_teacher@erp.com,pass123,Science,8
+
+[STUDENTS]
+student1=student1@erp.com,pass123,1,2024,1
+student2=student2@erp.com,pass123,2,2024,1
+student3=student3@erp.com,pass123,3,2024,1

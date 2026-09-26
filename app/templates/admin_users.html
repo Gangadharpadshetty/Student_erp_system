@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Manage Users - Student ERP{% endblock %}
+{% block page_title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <h3 class="text-lg font-bold text-gray-800">People and profiles</h3>
+            <p class="mt-1 text-sm text-gray-500">Student and teacher details currently stored in the system.</p>
+        </div>
+        <label class="w-full sm:max-w-sm">
+            <span class="sr-only">Search users</span>
+            <input id="user-search" type="search" placeholder="Search name, email, class, or subject" class="w-full rounded border bg-white px-3 py-2 text-sm">
+        </label>
+    </div>
+
+    <section>
+        <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-base font-bold text-gray-800">Students</h3>
+            <span class="text-sm text-gray-500">{{ students|length }} total</span>
+        </div>
+        <div id="student-profiles" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {% for student in students %}
+            <article class="user-profile rounded-lg border border-gray-200 bg-white p-5 shadow-sm" data-search="{{ student.name }} {{ student.email }} student class {{ student.class_id }} roll {{ student.roll_no }} {{ student.year }}">
+                <div class="flex items-start justify-between gap-3 border-b pb-4">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-800">{{ student.name[0]|upper if student.name else '?' }}</div>
+                        <div class="min-w-0">
+                            <h4 class="truncate font-semibold text-gray-900">{{ student.name or 'Unnamed student' }}</h4>
+                            <p class="break-all text-sm text-gray-500">{{ student.email or 'No email on file' }}</p>
+                        </div>
+                    </div>
+                    <span class="shrink-0 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800">Student</span>
+                </div>
+                <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div><dt class="text-gray-500">Roll number</dt><dd class="font-medium text-gray-800">{{ student.roll_no if student.roll_no is not none else 'Not set' }}</dd></div>
+                    <div><dt class="text-gray-500">Class</dt><dd class="font-medium text-gray-800">{{ student.classroom.class_number if student.classroom else student.class_id or 'Not assigned' }}</dd></div>
+                    <div><dt class="text-gray-500">Academic year</dt><dd class="font-medium text-gray-800">{{ student.year or 'Not set' }}</dd></div>
+                    <div><dt class="text-gray-500">Joined</dt><dd class="font-medium text-gray-800">{{ student.date_joined or 'Not recorded' }}</dd></div>
+                </dl>
+            </article>
+            {% else %}
+            <p class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">No student profiles have been created.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section>
+        <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-base font-bold text-gray-800">Teachers</h3>
+            <span class="text-sm text-gray-500">{{ teachers|length }} total</span>
+        </div>
+        <div id="teacher-profiles" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {% for teacher in teachers %}
+            <article class="user-profile rounded-lg border border-gray-200 bg-white p-5 shadow-sm" data-search="{{ teacher.name }} {{ teacher.email }} teacher {{ teacher.phone_no }} {{ teacher.subject_specialization }} {{ teacher.years_of_experience }}">
+                <div class="flex items-start justify-between gap-3 border-b pb-4">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-100 font-bold text-teal-800">{{ teacher.name[0]|upper if teacher.name else '?' }}</div>
+                        <div class="min-w-0">
+                            <h4 class="truncate font-semibold text-gray-900">{{ teacher.name or 'Unnamed teacher' }}</h4>
+                            <p class="break-all text-sm text-gray-500">{{ teacher.email or 'No email on file' }}</p>
+                        </div>
+                    </div>
+                    <span class="shrink-0 rounded bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">Teacher</span>
+                </div>
+                <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div><dt class="text-gray-500">Subject</dt><dd class="font-medium text-gray-800">{{ teacher.subject_specialization or 'Not set' }}</dd></div>
+                    <div><dt class="text-gray-500">Experience</dt><dd class="font-medium text-gray-800">{{ teacher.years_of_experience if teacher.years_of_experience is not none else 'Not set' }}{% if teacher.years_of_experience is not none %} years{% endif %}</dd></div>
+                    <div><dt class="text-gray-500">Phone</dt><dd class="font-medium text-gray-800">{{ teacher.phone_no or 'Not recorded' }}</dd></div>
+                    <div><dt class="text-gray-500">Class assignment</dt><dd class="font-medium text-gray-800">{{ teacher.class_managed.class_number if teacher.class_managed else 'Not assigned' }}</dd></div>
+                    <div><dt class="text-gray-500">Joined</dt><dd class="font-medium text-gray-800">{{ teacher.date_of_joining or 'Not recorded' }}</dd></div>
+                </dl>
+            </article>
+            {% else %}
+            <p class="rounded-lg border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">No teacher profiles have been created.</p>
+            {% endfor %}
+        </div>
+    </section>
+    <p id="no-user-results" class="hidden rounded border border-gray-200 bg-white p-4 text-sm text-gray-500">No profiles match your search.</p>
+</div>
+<script>
+    const userSearch = document.getElementById("user-search");
+    const userProfiles = [...document.querySelectorAll(".user-profile")];
+    const noUserResults = document.getElementById("no-user-results");
+
+    userSearch.addEventListener("input", () => {
+        const query = userSearch.value.trim().toLowerCase();
+        let visibleCount = 0;
+        userProfiles.forEach((profile) => {
+            const visible = profile.dataset.search.toLowerCase().includes(query);
+            profile.classList.toggle("hidden", !visible);
+            if (visible) visibleCount += 1;
+        });
+        noUserResults.classList.toggle("hidden", visibleCount > 0);
+    });
+</script>
+{% endblock %}

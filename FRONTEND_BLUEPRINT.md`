@@ -1,0 +1,71 @@
+# Frontend Design Blueprint - Student ERP System
+
+This document defines the User Interface (UI) and User Experience (UX) for the Student ERP. The frontend will be a Single Page Application (SPA) that adapts based on the User Role returned by the FastAPI `/auth/me` endpoint.
+
+## 1. Global Layout Structure
+All pages will follow a **Dashboard Layout**:
+- **Sidebar (Left):** Persistent navigation. Content changes based on role.
+- **Top Bar:** Shows current user's name, role badge, and a Logout button.
+- **Main Content Area (Center):** The dynamic area where reports, forms, and tables are displayed.
+
+---
+
+## 2. Role-Specific Dashboards
+
+### 🔵 Student View
+**Sidebar:** `My Profile`, `Attendance`, `Academic Reports`, `Raise Ticket`.
+
+- **Profile Component:** A beautiful card in the sidebar showing:
+    - Student Photo, Name, Roll No, and Current Class.
+- **Academics Page:**
+    - A grid of "Performance Cards" showing total percentage and pass/fail status.
+    - A detailed table of marks for the 6 core subjects.
+    - A "Past Records" dropdown to view reports from previous years.
+- **Attendance Page:** A circular progress bar showing "Total Attendance %" and a calendar view of present/absent days.
+
+### 🔴 Teacher View
+**Sidebar:** `My Profile`, `My Class`, `Mark Attendance`, `Student Reports`.
+
+- **Profile Component:** Sidebar card showing Name, Subject Specialization, and Assigned Class.
+- **Attendance Page:** A checklist of students in their assigned class with "Present/Absent" toggles and a "Submit" button.
+- **Student View Page:** A searchable table of students. Clicking a student opens their specific academic history.
+- **Class Summary:** A view of the overall pass percentage of their class.
+
+### 🟢 Admin View
+**Sidebar:** `Admin Dashboard`, `User Management`, `Class Setup`, `Academic Control`, `Ticket Center`, `System Logs`.
+
+- **User Management:**
+    - Forms to register new Students (Email, Password, Class ID).
+    - Forms to register new Teachers (Qualification, Specialization).
+- **Academic Control:** A master table where Admin can edit marks, update fees, or change class teachers.
+- **Ticket Center:** A list of student complaints with "Resolve" and "Reply" buttons.
+- **System Logs:** A read-only table showing every major action taken in the system (e.g., "Admin updated marks for Student X").
+
+---
+
+## 3. Interaction Design (User Flow)
+
+1. **Login $\rightarrow$** User enters email/password.
+2. **Identity Fetch $\rightarrow$** Frontend calls `/auth/me`.
+3. **Role Redirect $\rightarrow$**
+    - If `STUDENT` $\rightarrow$ Redirect to `/student/dashboard`.
+    - If `TEACHER` $\rightarrow$ Redirect to `/teacher/dashboard`.
+    - If `ADMIN` $\rightarrow$ Redirect to `/admin/dashboard`.
+4. **State Management $\rightarrow$** The JWT token is stored in `localStorage` and sent in the header of every API request.
+
+---
+
+## 4. Design System (Visuals)
+- **Theme:** Clean, Professional, and "Educational".
+- **Colors:**
+    - Primary: Deep Blue (`#1E3A8A`) - Trust and Authority.
+    - Success: Emerald Green - For "Pass" and "Present".
+    - Danger: Rose Red - For "Fail" and "Absent".
+- **Components:** Tailwind CSS for responsive grids, rounded cards, and interactive tables.
+
+---
+
+## 5. Backend Integration (FastAPI $\leftrightarrow$ React)
+- **API Calls:** Using `Axios` for HTTP requests.
+- **Interceptors:** An Axios interceptor will automatically attach the JWT token to every request.
+- **Error Handling:** Global "Toast" notifications to show "Login Failed" or "Attendance Submitted Successfully".

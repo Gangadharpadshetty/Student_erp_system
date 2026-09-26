@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - Student ERP{% endblock %}
+{% block page_title %}System Administration{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
+            <p class="text-gray-500 text-xs uppercase font-bold">Students</p>
+            <h3 class="text-2xl font-bold">{{ stats.total_students }}</h3>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+            <p class="text-gray-500 text-xs uppercase font-bold">Teachers</p>
+            <h3 class="text-2xl font-bold">{{ stats.total_teachers }}</h3>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-yellow-500">
+            <p class="text-gray-500 text-xs uppercase font-bold">Avg. Pass Rate</p>
+            <h3 class="text-2xl font-bold">{{ stats.avg_pass_rate }}%</h3>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500">
+            <p class="text-gray-500 text-xs uppercase font-bold">Open Tickets</p>
+            <h3 class="text-2xl font-bold">{{ stats.open_tickets }}</h3>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- User Registration Form -->
+        <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm">
+            <h3 class="text-lg font-bold mb-6 text-gray-800">User Management</h3>
+
+            <!-- Tabs for Student/Teacher -->
+            <div class="flex space-x-2 mb-6">
+                <button onclick="document.getElementById('student-form').classList.remove('hidden'); document.getElementById('teacher-form').classList.add('hidden')" class="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white">Student</button>
+                <button onclick="document.getElementById('student-form').classList.add('hidden'); document.getElementById('teacher-form').classList.remove('hidden')" class="flex-1 py-2 text-xs font-bold rounded bg-gray-200 text-gray-600">Teacher</button>
+            </div>
+            <p id="creation-status" class="hidden mb-4 rounded border px-4 py-3 text-sm" role="status" aria-live="polite"></p>
+
+            <form id="student-form" action="/admin/create-student" method="POST" class="creation-form space-y-4">
+                <input type="text" name="name" placeholder="Full Name" class="w-full p-2 border rounded-lg" required>
+                <input type="email" name="email" placeholder="Email" class="w-full p-2 border rounded-lg" required>
+                <input type="password" name="password" placeholder="Password" class="w-full p-2 border rounded-lg" required>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" name="roll" placeholder="Roll No" class="p-2 border rounded-lg" required>
+                    <input type="text" name="year" placeholder="Year" class="p-2 border rounded-lg" required>
+                </div>
+                <input type="number" name="class_id" placeholder="Class ID (1-10)" class="w-full p-2 border rounded-lg" required>
+                <button class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition">Create Student</button>
+            </form>
+
+            <form id="teacher-form" action="/admin/create-teacher" method="POST" class="creation-form hidden space-y-4">
+                <input type="text" name="name" placeholder="Full Name" class="w-full p-2 border rounded-lg" required>
+                <input type="email" name="email" placeholder="Email" class="w-full p-2 border rounded-lg" required>
+                <input type="password" name="password" placeholder="Password" class="w-full p-2 border rounded-lg" required>
+                <input type="text" name="phone" placeholder="Phone" class="w-full p-2 border rounded-lg" required>
+                <input type="number" name="exp" placeholder="Years Exp" class="w-full p-2 border rounded-lg" required>
+                <input type="text" name="subject" placeholder="Specialization" class="w-full p-2 border rounded-lg" required>
+                <button class="w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition">Create Teacher</button>
+            </form>
+        </div>
+
+        <!-- System Audit Logs -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">System Audit Trail</h3>
+                <span class="text-xs text-gray-400">Real-time updates</span>
+            </div>
+            <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                {% for log in logs %}
+                <div class="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition">
+                    <div class="w-2 h-2 rounded-full bg-blue-500 mr-4"></div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-800">{{ log.action }}</p>
+                        <p class="text-xs text-gray-500">{{ log.details }}</p>
+                    </div>
+                    <p class="text-[10px] text-gray-400">{{ log.timestamp }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const creationStatus = document.getElementById("creation-status");
+
+    document.querySelectorAll(".creation-form").forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const button = form.querySelector("button[type='submit']") || form.querySelector("button");
+            const originalLabel = button.textContent;
+            button.disabled = true;
+            button.textContent = "Creating...";
+
+            try {
+                const response = await fetch(form.action, {
+                    method: "POST",
+                    body: new FormData(form),
+                    headers: { Accept: "application/json" }
+                });
+                const result = await response.json();
+                const message = typeof result.message === "string"
+                    ? result.message
+                    : typeof result.detail === "string"
+                        ? result.detail
+                        : "Unable to create the record. Please check the submitted information.";
+
+                creationStatus.textContent = message;
+                creationStatus.className = response.ok
+                    ? "mb-4 rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+                    : "mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800";
+
+                if (response.ok) {
+                    form.reset();
+                }
+            } catch (error) {
+                creationStatus.textContent = "Unable to submit right now. Please try again.";
+                creationStatus.className = "mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800";
+            } finally {
+                button.disabled = false;
+                button.textContent = originalLabel;
+            }
+        });
+    });
+</script>
+{% endblock %}

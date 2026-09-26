@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student ERP | One campus, one clear view</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/home.css">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="/" aria-label="Student ERP home">
+            <span class="brand-mark">SE</span>
+            <span>Student ERP</span>
+        </a>
+        <nav class="top-nav" aria-label="Primary navigation">
+            <a href="#features">Platform</a>
+            <a href="#roles">For your role</a>
+            {% if user %}
+            <a href="{{ dashboard_url }}">{{ user.name }}</a>
+            <a class="nav-login" href="{{ dashboard_url }}">Dashboard <span aria-hidden="true">-&gt;</span></a>
+            <a href="/auth/logout">Log out</a>
+            {% else %}
+            <a class="nav-login" href="/auth/login-page">Sign in <span aria-hidden="true">-&gt;</span></a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="status-dot"></span> Connected campus operations</p>
+                <h1>Make every school day <em>count.</em></h1>
+                <p class="hero-text">A calmer way to bring attendance, academic progress, and communication into one dependable place.</p>
+                <div class="hero-actions">
+                    {% if user %}
+                    <a class="button button-primary" href="{{ dashboard_url }}">Go to your workspace <span aria-hidden="true">-&gt;</span></a>
+                    {% else %}
+                    <a class="button button-primary" href="/auth/login-page">Enter your workspace <span aria-hidden="true">-&gt;</span></a>
+                    {% endif %}
+                    <a class="text-link" href="#features">See what's inside <span aria-hidden="true">&#8595;</span></a>
+                </div>
+                <div class="hero-proof">
+                    <div class="avatar-stack" aria-hidden="true"><span>AK</span><span>PR</span><span>MS</span><b>+</b></div>
+                    <p><strong>Built for the whole campus</strong><br>Students, teachers, and admins stay in sync.</p>
+                </div>
+            </div>
+            <div class="hero-visual" aria-label="Student progress overview">
+                <div class="visual-topline"><span>Overview / 2024-25</span><span class="live-label"><span class="status-dot"></span> Live</span></div>
+                <div class="visual-heading"><div><p class="mini-label">Your campus at a glance</p><h2>Good morning, team.</h2></div><span class="date-chip">Today, 24 Sep</span></div>
+                <div class="metric-row">
+                    <div class="metric-card"><span class="metric-icon coral">&#9679;</span><p>Attendance</p><strong>94.8%</strong><small class="positive">+3.2% this week</small></div>
+                    <div class="metric-card"><span class="metric-icon teal">&#10003;</span><p>Assessments</p><strong>86</strong><small>12 need review</small></div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header"><div><p class="mini-label">Attendance trend</p><strong>Weekly rhythm</strong></div><span>Last 7 days <b>&#8964;</b></span></div>
+                    <div class="chart" aria-hidden="true"><i style="height:42%"></i><i style="height:58%"></i><i style="height:51%"></i><i style="height:73%"></i><i style="height:66%"></i><i style="height:84%"></i><i style="height:91%"></i></div>
+                    <div class="chart-labels"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+                </div>
+                <div class="visual-footer"><span class="footer-icon">&#8599;</span><p><strong>Everything in context</strong><br>Reports, records, and next steps.</p><span class="arrow">&#8594;</span></div>
+            </div>
+        </section>
+
+        <section class="feature-band" id="features">
+            <div class="section-intro"><p class="eyebrow">One shared system</p><h2>Less chasing.<br><em>More progress.</em></h2></div>
+            <div class="feature-grid">
+                <article><span class="feature-number">01</span><h3>See the full picture</h3><p>Keep student records, attendance, marks, and reports connected and easy to find.</p></article>
+                <article><span class="feature-number">02</span><h3>Move with confidence</h3><p>Give every role the right view, so routine work takes minutes instead of a morning.</p></article>
+                <article><span class="feature-number">03</span><h3>Keep people close</h3><p>Turn questions into trackable tickets and make follow-through part of the workflow.</p></article>
+            </div>
+        </section>
+
+        <section class="role-section" id="roles">
+            <div><p class="eyebrow">A place for every role</p><h2>Start where<br>you are.</h2></div>
+            <div class="role-list">
+                <a href="{% if user and user.role == 'STUDENT' %}/student/dashboard{% else %}/auth/login-page{% endif %}"><span class="role-symbol">ST</span><span><strong>Student portal</strong><small>Reports, attendance, and support</small></span><span class="arrow">&#8594;</span></a>
+                <a href="{% if user and user.role == 'TEACHER' %}/teacher/dashboard{% else %}/auth/login-page{% endif %}"><span class="role-symbol teal-bg">TE</span><span><strong>Teacher workspace</strong><small>Classes, marks, and attendance</small></span><span class="arrow">&#8594;</span></a>
+                <a href="{% if user and user.role == 'ADMIN' %}/admin/dashboard{% else %}/auth/login-page{% endif %}"><span class="role-symbol dark-bg">AD</span><span><strong>Admin control center</strong><small>People, academics, and activity</small></span><span class="arrow">&#8594;</span></a>
+            </div>
+        </section>
+    </main>
+
+    <footer><span class="brand"><span class="brand-mark">SE</span><span>Student ERP</span></span><span>Educational management, made human.</span><span>&copy; 2024 Student ERP</span></footer>
+</body>
+</html>

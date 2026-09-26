@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - Student ERP{% endblock %}
+{% block page_title %}Administrative Control Center{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Stats Cards -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-600">
+        <p class="text-gray-500 text-sm font-medium">Total Students</p>
+        <h3 class="text-3xl font-bold text-gray-800">{{ stats.total_students }}</h3>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-600">
+        <p class="text-gray-500 text-sm font-medium">Fees Collected</p>
+        <h3 class="text-3xl font-bold text-gray-800">₹{{ stats.fees_collected }}</h3>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-600">
+        <p class="text-gray-500 text-sm font-medium">Overall Pass Rate</p>
+        <h3 class="text-3xl font-bold text-gray-800">{{ stats.pass_rate }}%</h3>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- User Management Section -->
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">Quick Registration</h3>
+        <div class="space-y-4">
+            <p id="registration-status" class="hidden rounded border px-4 py-3 text-sm" role="status" aria-live="polite"></p>
+            <form action="/admin/create-student" method="POST" class="registration-form grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
+                <div class="col-span-2 font-semibold text-blue-800 mb-2">Add Student</div>
+                <input type="text" name="name" placeholder="Full Name" autocomplete="name" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="email" name="email" placeholder="Email" autocomplete="email" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="password" name="password" placeholder="Password" autocomplete="new-password" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="number" name="roll" placeholder="Roll No" min="1" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="text" name="year" placeholder="Year (e.g. 2024)" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="number" name="class_id" placeholder="Class (1-10)" min="1" max="10" step="1" class="w-full min-w-0 p-2 border rounded" required>
+                <button type="submit" class="col-span-1 sm:col-span-2 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">Register Student</button>
+            </form>
+
+            <form action="/admin/create-teacher" method="POST" class="registration-form grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border">
+                <div class="col-span-2 font-semibold text-green-800 mb-2">Add Teacher</div>
+                <input type="text" name="name" placeholder="Full Name" autocomplete="name" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="email" name="email" placeholder="Email" autocomplete="email" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="password" name="password" placeholder="Password" autocomplete="new-password" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="tel" name="phone" placeholder="Phone" autocomplete="tel" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="number" name="exp" placeholder="Experience (Yrs)" min="0" class="w-full min-w-0 p-2 border rounded" required>
+                <input type="text" name="subject" placeholder="Specialization" class="w-full min-w-0 p-2 border rounded" required>
+                <button type="submit" class="col-span-1 sm:col-span-2 bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">Register Teacher</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- System Logs -->
+    <div class="bg-white p-6 rounded-xl shadow-sm">
+        <h3 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2">Recent System Activity</h3>
+        <div class="space-y-3 max-h-96 overflow-y-auto">
+            {% for log in logs %}
+            <div class="flex items-start p-3 bg-gray-50 rounded border-l-2 border-gray-400">
+                <div class="ml-3">
+                    <p class="text-sm font-bold text-gray-800">{{ log.action }}</p>
+                    <p class="text-xs text-gray-500">{{ log.details }}</p>
+                    <p class="text-[10px] text-gray-400 mt-1">{{ log.timestamp }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+<script>
+    const registrationStatus = document.getElementById("registration-status");
+
+    document.querySelectorAll(".registration-form").forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const button = form.querySelector("button[type='submit']");
+            button.disabled = true;
+            button.textContent = "Submitting...";
+
+            try {
+                const response = await fetch(form.action, {
+                    method: "POST",
+                    body: new FormData(form),
+                    headers: { Accept: "application/json" }
+                });
+                const result = await response.json();
+                const message = typeof result.message === "string"
+                    ? result.message
+                    : typeof result.detail === "string"
+                        ? result.detail
+                        : "Please check the submitted information and try again.";
+
+                registrationStatus.textContent = message;
+                registrationStatus.className = response.ok
+                    ? "rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+                    : "rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800";
+
+                if (response.ok) {
+                    form.reset();
+                }
+            } catch (error) {
+                registrationStatus.textContent = "Unable to submit right now. Please try again.";
+                registrationStatus.className = "rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800";
+            } finally {
+                button.disabled = false;
+                button.textContent = button.dataset.label;
+            }
+        });
+    });
+
+    document.querySelectorAll(".registration-form button").forEach((button) => {
+        button.dataset.label = button.textContent;
+    });
+</script>
+{% endblock %}

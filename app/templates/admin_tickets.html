@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Ticket Center - Student ERP{% endblock %}
+{% block page_title %}Ticket Center{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    {% if notice %}
+    <p class="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">{{ notice }}</p>
+    {% endif %}
+
+    <section class="max-w-3xl rounded-lg bg-white p-6 shadow-sm">
+        <h3 class="mb-1 text-lg font-bold text-gray-800">Create a support ticket</h3>
+        <p class="mb-5 text-sm text-gray-500">Create a ticket on behalf of a student and track it below.</p>
+        <form action="/admin/tickets/create" method="POST" class="ticket-create-form space-y-4">
+            <label class="block text-sm font-medium text-gray-700">Student
+                <select name="student_id" required class="mt-1 w-full rounded border p-2">
+                    <option value="">Select a student</option>
+                    {% for student in students %}
+                    <option value="{{ student.student_id }}">{{ student.name }} · Class {{ student.class_id }} · {{ student.email }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="block text-sm font-medium text-gray-700">Issue description
+                <textarea name="description" rows="4" required maxlength="2000" class="mt-1 w-full rounded border p-3" placeholder="Describe the student's issue"></textarea>
+            </label>
+            <p class="form-status hidden rounded border px-4 py-3 text-sm" role="status" aria-live="polite"></p>
+            <button type="submit" class="rounded bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800">Create ticket</button>
+        </form>
+    </section>
+
+    <section>
+        <h3 class="mb-3 text-lg font-bold text-gray-800">All tickets</h3>
+        <div class="overflow-x-auto rounded-lg bg-white shadow-sm">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500"><tr><th class="p-3">Ticket</th><th class="p-3">Student</th><th class="p-3">Issue</th><th class="p-3">Created</th><th class="p-3">Status</th><th class="p-3">Action</th></tr></thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr class="border-t">
+                        <td class="p-3">#{{ ticket.ticket_id }}</td>
+                        <td class="p-3">{{ ticket.student.name if ticket.student else 'Student ' ~ ticket.student_id }}</td>
+                        <td class="max-w-md whitespace-pre-wrap p-3">{{ ticket.issue_description }}</td>
+                        <td class="whitespace-nowrap p-3">{{ ticket.created_at.strftime('%Y-%m-%d %H:%M') if ticket.created_at else '' }}</td>
+                        <td class="p-3">{{ ticket.status }}</td>
+                        <td class="p-3">
+                            {% if ticket.status != 'Resolved' %}
+                            <form action="/admin/tickets/{{ ticket.ticket_id }}/resolve" method="POST" class="ticket-resolve-form">
+                                <button type="submit" class="whitespace-nowrap rounded border border-teal-700 px-3 py-1 text-teal-800 hover:bg-teal-50">Mark resolved</button>
+                            </form>
+                            {% else %}
+                            <span class="text-gray-500">Complete</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="p-4 text-center text-gray-500">There are no tickets yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+<script>
+    document.querySelectorAll(".ticket-create-form, .ticket-resolve-form").forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const button = form.querySelector("button[type='submit']");
+            const status = form.querySelector(".form-status");
+            const label = button.textContent;
+            button.disabled = true;
+            button.textContent = "Saving...";
+
+            try {
+                const response = await fetch(form.action, {
+                    method: "POST",
+                    body: new FormData(form),
+                    headers: { Accept: "application/json" }
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(typeof result.detail === "string" ? result.detail : "Unable to save this ticket.");
+                }
+                window.location.href = `${window.location.pathname}?notice=${encodeURIComponent(result.message)}`;
+            } catch (error) {
+                if (status) {
+                    status.textContent = error.message || "Unable to submit right now. Please try again.";
+                    status.className = "form-status rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800";
+                }
+                button.disabled = false;
+                button.textContent = label;
+            }
+        });
+    });
+</script>
+{% endblock %}
