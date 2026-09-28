@@ -1,14 +1,21 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from ...models import Student, Teacher, Class, SystemLog
+from ...models import Admin, Student, Teacher, Class, SystemLog
 from ...utils.security import hash_password
+from ...utils.validation import validate_email, validate_password, validate_phone
 import datetime
 
 def create_teacher(db: Session, name: str, email: str, password: str, phone: str, exp: int, subject: str):
-    # Check if teacher already exists
-    existing = db.query(Teacher).filter(Teacher.email == email).first()
+    email = validate_email(email)
+    password = validate_password(password)
+    phone = validate_phone(phone)
+    existing = (
+        db.query(Teacher).filter(Teacher.email == email).first()
+        or db.query(Student).filter(Student.email == email).first()
+        or db.query(Admin).filter(Admin.email == email).first()
+    )
     if existing:
-        raise HTTPException(status_code=400, detail="Teacher with this email already exists")
+        raise HTTPException(status_code=400, detail="An account with this email already exists")
 
     new_teacher = Teacher(
         name=name,
@@ -28,13 +35,18 @@ def create_teacher(db: Session, name: str, email: str, password: str, phone: str
     return new_teacher
 
 def create_student(db: Session, name: str, email: str, password: str, roll: int, year: str, class_id: int):
+    email = validate_email(email)
+    password = validate_password(password)
     if not 1 <= class_id <= 10:
         raise HTTPException(status_code=400, detail="Class ID must be between 1 and 10")
 
-    # Check if student already exists
-    existing = db.query(Student).filter(Student.email == email).first()
+    existing = (
+        db.query(Student).filter(Student.email == email).first()
+        or db.query(Teacher).filter(Teacher.email == email).first()
+        or db.query(Admin).filter(Admin.email == email).first()
+    )
     if existing:
-        raise HTTPException(status_code=400, detail="Student with this email already exists")
+        raise HTTPException(status_code=400, detail="An account with this email already exists")
 
     # Verify class exists
     classroom = db.query(Class).filter(Class.class_id == class_id).first()
@@ -61,6 +73,10 @@ def assign_class_teacher(db: Session, class_id: int, teacher_id: int):
     classroom = db.query(Class).filter(Class.class_id == class_id).first()
     if not classroom:
         raise HTTPException(status_code=404, detail="Class not found")
+
+    teacher = db.query(Teacher).filter(Teacher.teacher_id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
 
     classroom.class_teacher_id = teacher_id
     db.commit()

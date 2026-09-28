@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Raise Ticket - Student ERP{% endblock %}
+{% block page_title %}Raise Ticket{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    {% if notice == 'ticket-created' %}
+    <p class="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">Your support ticket was submitted successfully.</p>
+    {% endif %}
+
+    <section class="max-w-3xl rounded-lg bg-white p-6 shadow-sm">
+        <h3 class="mb-1 text-lg font-bold text-gray-900">How can we help?</h3>
+        <p class="mb-5 text-sm text-gray-500">Describe the issue and the administration will review your ticket.</p>
+        <form action="/student/raise-ticket" method="POST" class="space-y-4">
+            <input type="hidden" name="return_to" value="/student/tickets">
+            <label class="block text-sm font-medium text-gray-700" for="ticket-description">Issue description</label>
+            <textarea id="ticket-description" name="description" rows="5" maxlength="2000" required class="w-full rounded border p-3" placeholder="Describe what you need help with"></textarea>
+            <button type="submit" class="rounded bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800">Submit ticket</button>
+        </form>
+    </section>
+
+    <section>
+        <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-900">My tickets</h3>
+            <span class="text-sm text-gray-500">{{ tickets|length }} total</span>
+        </div>
+        <div class="overflow-x-auto rounded-lg bg-white shadow-sm">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                    <tr><th class="px-4 py-3">Ticket</th><th class="px-4 py-3">Issue</th><th class="px-4 py-3">Submitted</th><th class="px-4 py-3">Status</th></tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr class="border-t border-gray-100">
+                        <td class="whitespace-nowrap px-4 py-3">#{{ ticket.ticket_id }}</td>
+                        <td class="min-w-64 whitespace-pre-wrap px-4 py-3">{{ ticket.issue_description }}</td>
+                        <td class="whitespace-nowrap px-4 py-3">{{ ticket.created_at.strftime('%b %d, %Y') if ticket.created_at else 'Not recorded' }}</td>
+                        <td class="px-4 py-3">
+                            <span class="rounded px-2 py-1 text-xs font-semibold {{ 'bg-green-100 text-green-800' if ticket.status == 'Resolved' else 'bg-yellow-100 text-yellow-800' }}">{{ ticket.status or 'Open' }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="px-4 py-10 text-center text-gray-500">You have not submitted any tickets yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

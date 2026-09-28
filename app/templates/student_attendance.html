@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}My Attendance - Student ERP{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <section class="rounded-lg bg-white p-6 shadow-sm">
+        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+                <p class="text-sm text-gray-500">Attendance record</p>
+                <h3 class="mt-1 text-xl font-bold text-gray-900">{{ user.name }}</h3>
+                <p class="mt-1 text-sm text-gray-600">Class {{ user.class_id }} · Roll number {{ user.roll_no }}</p>
+            </div>
+            <p class="text-sm text-gray-500">{{ attendance_records|length }} recorded day{% if attendance_records|length != 1 %}s{% endif %}</p>
+        </div>
+    </section>
+
+    <section>
+        <div class="overflow-x-auto rounded-lg bg-white shadow-sm">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-500">
+                    <tr>
+                        <th class="px-4 py-3">Date</th>
+                        <th class="px-4 py-3">Academic year</th>
+                        <th class="px-4 py-3">Class</th>
+                        <th class="px-4 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in attendance_records %}
+                    <tr class="border-t border-gray-100">
+                        <td class="whitespace-nowrap px-4 py-3">{{ record.date.strftime('%b %d, %Y') if record.date else 'Not recorded' }}</td>
+                        <td class="px-4 py-3">{{ record.year or 'Not set' }}</td>
+                        <td class="px-4 py-3">{{ record.class_id }}</td>
+                        <td class="px-4 py-3">
+                            <span class="rounded px-2 py-1 text-xs font-semibold {{ 'bg-green-100 text-green-800' if record.status|lower == 'present' else 'bg-red-100 text-red-800' }}">{{ record.status or 'Not recorded' }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="px-4 py-12 text-center">
+                            <h3 class="font-semibold text-gray-800">No attendance records yet</h3>
+                            <p class="mt-1 text-sm text-gray-500">Attendance will appear here after it is recorded by your teacher.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

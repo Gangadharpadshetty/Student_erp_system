@@ -1,13 +1,31 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from ...models import Academics, Attendance, Class, Report, Ticket, Student
+from ...models import Academics, Attendance, Class, Report, Teacher, Ticket, Student
 import datetime
 
 def mark_attendance(db: Session, student_id: int, class_id: int, year: str, teacher_id: int, status: str):
-    # Check if attendance already exists for this student on this date
+    teacher = db.query(Teacher).filter(Teacher.teacher_id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    classroom = db.query(Class).filter(
+        Class.class_id == class_id,
+        Class.class_teacher_id == teacher_id,
+    ).first()
+    if not classroom:
+        raise HTTPException(status_code=403, detail="You are not assigned to this class")
+    student = db.query(Student).filter(
+        Student.student_id == student_id,
+        Student.class_id == class_id,
+    ).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found in your class")
+    if status not in {"Present", "Absent"}:
+        raise HTTPException(status_code=422, detail="Attendance status must be Present or Absent")
+
     today = datetime.date.today()
     existing = db.query(Attendance).filter(
         Attendance.student_id == student_id,
+        Attendance.class_id == class_id,
         Attendance.date == today
     ).first()
 
@@ -27,12 +45,26 @@ def mark_attendance(db: Session, student_id: int, class_id: int, year: str, teac
     db.commit()
     return {"status": "success"}
 
-def update_student_marks(db: Session, student_id: int, year: str, class_id: int, marks_data: dict):
+def update_student_marks(
+    db: Session,
+    student_id: int,
+    year: str,
+    class_id: int,
+    marks_data: dict,
+    teacher_id: int | None = None,
+):
     student = db.query(Student).filter(Student.student_id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     if student.class_id != class_id:
         raise HTTPException(status_code=400, detail="Class does not match the student's class")
+    if teacher_id is not None:
+        classroom = db.query(Class).filter(
+            Class.class_id == class_id,
+            Class.class_teacher_id == teacher_id,
+        ).first()
+        if not classroom:
+            raise HTTPException(status_code=403, detail="You are not assigned to this class")
     if any(mark < 0 or mark > 100 for mark in marks_data.values()):
         raise HTTPException(status_code=422, detail="Marks must be between 0 and 100")
 

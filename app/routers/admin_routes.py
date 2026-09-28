@@ -52,12 +52,12 @@ def add_student(
 
 @router.post("/assign-teacher")
 def assign_teacher(
-    class_id: int = Form(...),
-    teacher_id: int = Form(...),
+    class_id: int = Form(..., ge=1, le=10),
+    teacher_id: int = Form(..., gt=0),
     db: Session = Depends(get_db)
 ):
     admin_controller.assign_class_teacher(db, class_id, teacher_id)
-    return RedirectResponse(url="/admin/dashboard", status_code=303)
+    return RedirectResponse(url="/admin/dashboard?assignment=success", status_code=303)
 
 @router.get("/students")
 def list_students(db: Session = Depends(get_db)):

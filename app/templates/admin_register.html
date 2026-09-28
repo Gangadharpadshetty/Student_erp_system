@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Admin - Student ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex min-h-screen items-center justify-center bg-gray-100 p-4">
+    <main class="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+        <h1 class="mb-2 text-center text-2xl font-bold text-blue-900">Register an admin</h1>
+        <p class="mb-6 text-center text-sm text-gray-600">Admin registration requires an invitation key from the system operator.</p>
+        {% if error %}
+        <p class="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error }}</p>
+        {% endif %}
+        {% if not registration_enabled %}
+        <p class="mb-5 rounded border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800" role="status">Admin registration is disabled. Configure ADMIN_REGISTRATION_KEY on the server to enable it.</p>
+        {% endif %}
+        <form action="/admin/register" method="POST" class="space-y-4">
+            <label class="block text-sm font-semibold text-gray-700">Full name
+                <input name="name" type="text" maxlength="100" autocomplete="name" required class="mt-1 w-full rounded border px-3 py-2">
+            </label>
+            <label class="block text-sm font-semibold text-gray-700">Email
+                <input name="email" type="email" maxlength="254" autocomplete="email" required class="mt-1 w-full rounded border px-3 py-2">
+            </label>
+            <label class="block text-sm font-semibold text-gray-700">Password
+                <input name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" required class="mt-1 w-full rounded border px-3 py-2">
+                <span class="mt-1 block text-xs font-normal text-gray-500">Use 8 or more characters.</span>
+            </label>
+            <label class="block text-sm font-semibold text-gray-700">Admin registration key
+                <input name="registration_key" type="password" autocomplete="off" required class="mt-1 w-full rounded border px-3 py-2">
+            </label>
+            <button type="submit" {% if not registration_enabled %}disabled{% endif %} class="w-full rounded bg-blue-800 py-2 font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">Register admin</button>
+        </form>
+        <a href="/auth/login-page" class="mt-5 block text-center text-sm font-semibold text-blue-800 hover:underline">Back to sign in</a>
+    </main>
+</body>
+</html>

@@ -3,10 +3,10 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from .database import get_db
-from .models import Student, Teacher, SystemLog
+from .models import Class, Student, Teacher, SystemLog
 from .api.controllers import auth_controller
 from .utils.security import decode_access_token
-from .routers import auth_routes, admin_routes, academic_routes, student_routes
+from .routers import auth_routes, admin_routes, academic_routes, student_routes, teacher_routes
 
 app = FastAPI(title="Student ERP System")
 
@@ -22,9 +22,11 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Include Routes
 app.include_router(auth_routes.router)
+app.include_router(auth_routes.admin_registration_router)
 app.include_router(admin_routes.router)
 app.include_router(academic_routes.router)
 app.include_router(student_routes.router)
+app.include_router(teacher_routes.router)
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, db=Depends(get_db)):
@@ -47,6 +49,7 @@ async def index(request: Request, db=Depends(get_db)):
 async def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html", {
         "error": request.query_params.get("error"),
+        "registered": request.query_params.get("registered"),
     })
 
 # Temporary placeholder routes for dashboards
@@ -69,14 +72,10 @@ async def admin_dash(request: Request, db=Depends(get_db)):
         "user": user,
         "stats": stats,
         "logs": logs,
+        "classes": db.query(Class).order_by(Class.class_number).all(),
+        "teachers": db.query(Teacher).order_by(Teacher.name).all(),
+        "assignment_notice": "Class teacher assigned successfully." if request.query_params.get("assignment") == "success" else None,
     })
-
-@app.get("/teacher/dashboard", response_class=HTMLResponse)
-async def teacher_dash(request: Request, db=Depends(get_db)):
-    user = _get_session_user(request, db, "TEACHER")
-    if not user:
-        return RedirectResponse(url="/auth/login-page", status_code=303)
-    return templates.TemplateResponse(request, "teacher.html", {"user": user})
 
 def _get_session_user(request: Request, db, expected_role: str):
     token = request.cookies.get("access_token")

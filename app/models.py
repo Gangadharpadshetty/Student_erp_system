@@ -3,6 +3,15 @@ from sqlalchemy.orm import relationship
 from .database import Base
 import datetime
 
+class Admin(Base):
+    __tablename__ = "admins"
+
+    admin_id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
 class Teacher(Base):
     __tablename__ = "teachers"
 

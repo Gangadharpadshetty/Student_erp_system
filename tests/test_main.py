@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.database import Base, get_db
-from app.models import Academics, Student, Teacher, Class, Report, SystemLog, Ticket
+from app.models import Admin, Academics, Attendance, Student, Teacher, Class, Report, SystemLog, Ticket
 from app.utils.security import create_access_token
 
 # Setup Test Database
@@ -53,6 +53,45 @@ def test_login_redirects_to_home(db_session):
     assert response.status_code == 303
     assert response.headers["location"] == "/"
     assert "access_token" in response.cookies
+
+def test_admin_registration_is_available_at_admin_endpoint(db_session):
+    response = client.get("/admin/register")
+    assert response.status_code == 200
+    assert "Register an admin" in response.text
+    assert 'action="/admin/register"' in response.text
+
+def test_admin_registration_requires_server_key(db_session, monkeypatch):
+    monkeypatch.delenv("ADMIN_REGISTRATION_KEY", raising=False)
+    response = client.post("/admin/register", data={
+        "name": "New Admin",
+        "email": "new-admin@example.com",
+        "password": "securepass123",
+        "registration_key": "anything",
+    })
+    assert response.status_code == 503
+    assert "Admin registration is not enabled" in response.text
+    assert db_session.query(Admin).count() == 0
+
+def test_admin_registration_creates_login_account(db_session, monkeypatch):
+    monkeypatch.setenv("ADMIN_REGISTRATION_KEY", "one-time-registration-secret")
+    response = client.post("/admin/register", data={
+        "name": "New Admin",
+        "email": "NEW-ADMIN@example.com",
+        "password": "securepass123",
+        "registration_key": "one-time-registration-secret",
+    }, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/auth/login-page?registered=1"
+    admin = db_session.query(Admin).filter_by(email="new-admin@example.com").one()
+    assert admin.name == "New Admin"
+    assert admin.password != "securepass123"
+
+    login_response = client.post("/auth/login", data={
+        "email": admin.email,
+        "password": "securepass123",
+    }, follow_redirects=False)
+    assert login_response.status_code == 303
+    assert "access_token" in login_response.cookies
 
 
 def test_home_stays_visible_when_logged_in(db_session):
@@ -114,6 +153,195 @@ def test_student_dashboard_redirects_for_invalid_role(db_session):
     assert response.status_code == 303
     assert response.headers["location"] == "/auth/login-page"
 
+def test_assigned_teacher_can_record_attendance_and_marks(db_session):
+    teacher = Teacher(
+        name="Class Teacher",
+        email="class-teacher@example.com",
+        password="hashed",
+        phone_no="5551234567",
+        subject_specialization="Math",
+    )
+    db_session.add(teacher)
+    db_session.flush()
+    classroom = Class(class_id=1, class_number=1, class_teacher_id=teacher.teacher_id)
+    student = Student(
+        name="Roster Student",
+        email="roster@student.com",
+        password="hashed",
+        roll_no=1,
+        year="2026-2027",
+        class_id=1,
+    )
+    db_session.add_all([classroom, student])
+    db_session.commit()
+    client.cookies.set("access_token", create_access_token({
+        "sub": teacher.email, "role": "TEACHER", "id": teacher.teacher_id,
+    }))
+
+    dashboard_response = client.get("/teacher/dashboard")
+    assert dashboard_response.status_code == 200
+    assert "Roster Student" in dashboard_response.text
+    assert 'action="/teacher/attendance"' in dashboard_response.text
+    assert 'action="/teacher/marks"' in dashboard_response.text
+
+    attendance_response = client.post("/teacher/attendance", data={
+        "student_id": student.student_id,
+        "status": "Present",
+    })
+    assert attendance_response.status_code == 200
+    attendance = db_session.query(Attendance).filter_by(student_id=student.student_id).one()
+    assert attendance.status == "Present"
+    assert attendance.teacher_id == teacher.teacher_id
+    assert attendance.class_id == classroom.class_id
+
+    marks_response = client.post("/teacher/marks", data={
+        "student_id": student.student_id,
+        "year": "2026-2027",
+        "eng": 80,
+        "kannada": 80,
+        "hindi": 80,
+        "math": 80,
+        "science": 80,
+        "social": 80,
+    })
+    assert marks_response.status_code == 200
+    assert marks_response.json()["result"] == "PASS"
+    assert db_session.query(Report).filter_by(student_id=student.student_id).count() == 1
+
+def test_teacher_cannot_write_for_unassigned_class(db_session):
+    teacher = Teacher(
+        name="Unassigned Teacher",
+        email="unassigned@example.com",
+        password="hashed",
+    )
+    db_session.add(teacher)
+    db_session.flush()
+    db_session.add(Class(class_id=1, class_number=1))
+    student = Student(
+        name="Other Class Student",
+        email="other-class@student.com",
+        password="hashed",
+        roll_no=1,
+        year="2026-2027",
+        class_id=1,
+    )
+    db_session.add(student)
+    db_session.commit()
+    client.cookies.set("access_token", create_access_token({
+        "sub": teacher.email, "role": "TEACHER", "id": teacher.teacher_id,
+    }))
+
+    response = client.post("/teacher/attendance", data={
+        "student_id": student.student_id,
+        "status": "Present",
+    })
+    assert response.status_code == 403
+    assert db_session.query(Attendance).count() == 0
+
+def test_student_report_and_attendance_pages_render_own_records(db_session):
+    db_session.add(Class(class_id=1, class_number=1))
+    student = Student(
+        name="Student Records",
+        email="records@student.com",
+        password="hashed",
+        roll_no=4,
+        year="2026-2027",
+        class_id=1,
+    )
+    db_session.add(student)
+    db_session.commit()
+    db_session.add(Report(
+        year="2026-2027",
+        student_id=student.student_id,
+        class_id=1,
+        eng_marks=85,
+        kannada_marks=80,
+        hindi_marks=75,
+        math_marks=90,
+        science_marks=88,
+        social_science_marks=82,
+        overall_percentage=83.33,
+        result_status="PASS",
+    ))
+    db_session.add(Attendance(
+        student_id=student.student_id,
+        class_id=1,
+        year="2026-2027",
+        teacher_id=1,
+        status="Present",
+    ))
+    db_session.commit()
+    client.cookies.set("access_token", create_access_token({
+        "sub": student.email, "role": "STUDENT", "id": student.student_id,
+    }))
+
+    report_response = client.get("/student/report", follow_redirects=False)
+    assert report_response.status_code == 200
+    assert "Official Marksheet - 2026-2027" in report_response.text
+    assert "83.33%" in report_response.text
+
+    attendance_response = client.get("/student/attendance", follow_redirects=False)
+    assert attendance_response.status_code == 200
+    assert "My Attendance" in attendance_response.text
+    assert "Present" in attendance_response.text
+    assert "2026-2027" in attendance_response.text
+
+def test_student_attendance_requires_student_login(db_session):
+    client.cookies.set("access_token", create_access_token({
+        "sub": "admin@erp.com", "role": "ADMIN", "id": 1,
+    }))
+    response = client.get("/student/attendance", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/auth/login-page"
+
+def test_student_can_raise_ticket_and_view_confirmation(db_session):
+    db_session.add(Class(class_id=1, class_number=1))
+    student = Student(
+        name="Ticket Owner",
+        email="ticket-owner@student.com",
+        password="hashed",
+        roll_no=8,
+        year="2026-2027",
+        class_id=1,
+    )
+    db_session.add(student)
+    db_session.commit()
+    client.cookies.set("access_token", create_access_token({
+        "sub": student.email, "role": "STUDENT", "id": student.student_id,
+    }))
+
+    response = client.post("/student/raise-ticket", data={
+        "description": "Please review my attendance",
+        "return_to": "/student/report",
+        "student_id": 9999,
+    }, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/student/report?notice=ticket-created"
+
+    ticket = db_session.query(Ticket).one()
+    assert ticket.student_id == student.student_id
+    assert ticket.issue_description == "Please review my attendance"
+
+    report_response = client.get(response.headers["location"])
+    assert report_response.status_code == 200
+    assert "Your support ticket was submitted successfully." in report_response.text
+
+    tickets_response = client.get("/student/tickets")
+    assert tickets_response.status_code == 200
+    assert "Please review my attendance" in tickets_response.text
+    assert "My tickets" in tickets_response.text
+
+def test_student_raise_ticket_requires_student_login(db_session):
+    client.cookies.set("access_token", create_access_token({
+        "sub": "admin@erp.com", "role": "ADMIN", "id": 1,
+    }))
+    response = client.post("/student/raise-ticket", data={
+        "description": "This should not be accepted",
+    }, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/auth/login-page"
+    assert db_session.query(Ticket).count() == 0
+
 
 # --- Test Cases ---
 
@@ -145,6 +373,54 @@ def test_admin_create_student(db_session):
     student = db_session.query(Student).filter(Student.email == "test@student.com").first()
     assert student is not None
     assert student.name == "Test Student"
+
+@pytest.mark.parametrize(("email", "password"), [
+    ("not-an-email", "securepass123"),
+    ("valid@student.com", "short"),
+])
+def test_student_registration_rejects_invalid_email_or_password(db_session, email, password):
+    db_session.add(Class(class_id=1, class_number=1))
+    db_session.commit()
+    response = client.post("/admin/create-student", data={
+        "name": "Invalid Account",
+        "email": email,
+        "password": password,
+        "roll": 2,
+        "year": "2026-2027",
+        "class_id": 1,
+    })
+    assert response.status_code == 422
+
+def test_teacher_registration_rejects_invalid_phone(db_session):
+    response = client.post("/admin/create-teacher", data={
+        "name": "Invalid Phone",
+        "email": "teacher@example.com",
+        "password": "securepass123",
+        "phone": "call-me",
+        "exp": 2,
+        "subject": "Science",
+    })
+    assert response.status_code == 422
+
+def test_admin_can_assign_teacher_to_class(db_session):
+    classroom = Class(class_id=1, class_number=1)
+    teacher = Teacher(
+        name="Assigned Teacher",
+        email="assigned@example.com",
+        password="hashed",
+        phone_no="5551234567",
+        subject_specialization="Math",
+    )
+    db_session.add_all([classroom, teacher])
+    db_session.commit()
+
+    response = client.post("/admin/assign-teacher", data={
+        "class_id": 1,
+        "teacher_id": teacher.teacher_id,
+    }, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/admin/dashboard?assignment=success"
+    assert db_session.query(Class).filter_by(class_id=1).one().class_teacher_id == teacher.teacher_id
 
 @pytest.mark.parametrize("class_id", [0, 11])
 def test_create_student_rejects_class_outside_range(db_session, class_id):
@@ -201,7 +477,7 @@ def test_system_logging(db_session):
 
     # Action: Create Teacher
     admin_controller.create_teacher(
-        db_session, "Mr. Smith", "smith@school.com", "pass123", "12345", 5, "Math"
+        db_session, "Mr. Smith", "smith@school.com", "pass12345", "1234567", 5, "Math"
     )
 
     # Verify log exists

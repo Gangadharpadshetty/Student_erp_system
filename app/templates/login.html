@@ -12,6 +12,9 @@
         {% if error %}
         <p class="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{{ error }}</p>
         {% endif %}
+        {% if registered %}
+        <p class="mb-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">Admin account registered. Sign in to continue.</p>
+        {% endif %}
         <form action="/auth/login" method="POST">
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
@@ -25,6 +28,7 @@
                 Login
             </button>
         </form>
+        <a href="/admin/register" class="mt-5 block text-center text-sm font-semibold text-blue-800 hover:underline">Register an admin account</a>
     </div>
 </body>
 </html>

@@ -4,7 +4,7 @@ A role-based school management app built with FastAPI, Jinja templates, and SQLA
 
 ## Features
 
-- Admin: create student and teacher accounts, browse profiles, enter marks, manage academic summaries, and create or resolve support tickets.
+- Admin: register additional admins, create student and teacher accounts, assign class teachers, browse profiles, enter marks, manage academic summaries, and create or resolve support tickets.
 - Teacher: access the teacher workspace to record attendance and marks.
 - Student: view the academic report and submit a correction/support ticket.
 - Database: SQLite by default, with PostgreSQL supported through `DATABASE_URL`.
@@ -42,7 +42,7 @@ uvicorn app.main:app --reload
 
 Open `http://127.0.0.1:8000`. The API documentation is at `http://127.0.0.1:8000/docs`.
 
-The default database is `sqlite:///./student_erp.db`. To use PostgreSQL, set `DATABASE_URL` in the environment or in a root `.env` file, for example:
+The default database is `sqlite:///./student_erp.db`. Copy `.env.example` to `.env` to configure local settings. To use PostgreSQL, set `DATABASE_URL` in the environment or in a root `.env` file, for example:
 
 ```text
 DATABASE_URL=postgresql://username:password@host:5432/database_name
@@ -71,6 +71,8 @@ The current development admin account is hard-coded in `app/api/controllers/auth
 
 These credentials are for local development only. Replace the hard-coded admin authentication and sample passwords before deploying to a public environment.
 
+Admin registration is available at `/admin/register`. It is disabled unless `ADMIN_REGISTRATION_KEY` is set in the server environment. Share that key only with approved administrators; the key is checked server-side and must not be committed. Registered admins are stored in the `admins` table with hashed passwords. Run `python seed_db.py` after updating the application to create newly added tables in an existing database.
+
 ## Role Pages
 
 | Role | Page |
@@ -78,6 +80,7 @@ These credentials are for local development only. Replace the hard-coded admin a
 | Public | `/` |
 | Sign in | `/auth/login-page` |
 | Admin dashboard | `/admin/dashboard` |
+| Admin registration | `/admin/register` |
 | Manage users | `/admin/users` |
 | Academic control | `/admin/academics` |
 | Ticket center | `/admin/tickets` |

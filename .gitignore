@@ -20,6 +20,8 @@ env/
 *.sqlite
 *.sqlite3
 *.log
+/test_users.txt
+/tests/test_main.py
 
 # Packaging and build output
 build/
